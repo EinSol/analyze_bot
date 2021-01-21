@@ -5,6 +5,7 @@ from keyboards import back_to_menu_kb, menu_keyboard, url_kb
 from main_screen.handlers import back_to_menu_handler
 from Tools.tools import Toolkit
 import validators
+import os
 
 URL_FUNCTIONS = range(1)
 
@@ -53,36 +54,89 @@ def url_functions_callback(update: Update, context: CallbackContext):
                              reply_markup=url_kb)
 
 
-def summarize_callback(update: Update, context: CallbackContext):
+def extract_article_callback(update: Update, context: CallbackContext):
+    update = context.chat_data['update']
     cid = update.effective_message.chat.id
     q = context.chat_data['query']
-    update = context.chat_data['update']
     storage_article = context.chat_data['url_section'].get(q)
     toolkit = Toolkit()
 
-    if storage_article is not None:
+    if storage_article is not None and storage_article.get('title'):
         current_article = {'title': storage_article['title'],
-             'url': storage_article['url'],
-             'text': storage_article['text'],
-             'length': 10}
+                           'text': storage_article['article'],
+                           'author': storage_article['author'],
+                           'date': storage_article['publishDate'],
+                           'tags': storage_article['tags'],
+                           'url': storage_article['url']
+                           }
 
     else:
         context.chat_data['url_section'].update({q: {'url': q}})
         article_info = toolkit.extract_article_info(q)
-        print(article_info)
-        if len(article_info['article']) > 5100:
-            update.message.reply_text('Sorry, article is too big(>5100). \n Please, go back to menu and choose file section')
-            return
 
         current_article = {'title': article_info['title'],
-                            'text': article_info['article'],
-                            'author': article_info['author'],
-                            'date': article_info['publishDate'],
-                            'tags': article_info['tags'],
-                            'url': q,
-                           'length': 10}
+                           'text': article_info['article'],
+                           'author': article_info['author'],
+                           'date': article_info['publishDate'],
+                           'tags': article_info['tags']
+                           }
 
-        context.chat_data['url_section'][q].update(current_article)
+    file_name = toolkit.create_document(current_article)
+
+    path = os.getcwd()
+
+    context.bot.send_document(chat_id=cid,
+                              document=open(f'{path}/doc_storage/info-{file_name}.docx', 'rb'))
+
+
+extract_article_handler = CallbackQueryHandler(callback=extract_article_callback,
+                                               pass_chat_data=True,
+                                               pattern='extract_article')
+
+
+def extract_entity_callback(update: Update, context: CallbackContext):
+    update = context.chat_data['update']
+    cid = update.effective_message.chat.id
+    q = context.chat_data['query']
+    storage_article = context.chat_data['url_section'].get(q)
+    toolkit = Toolkit()
+
+    if storage_article is not None and storage_article.get('entities'):
+        current_article = storage_article.get('entities')
+
+    else:
+        context.chat_data['url_section'].update({q: {'url': q}})
+        article_info = toolkit.extract_entity({'url': q})['entities']
+
+        current_article = article_info
+
+    file_name = toolkit.create_document(current_article)
+
+    path = os.getcwd()
+
+    context.bot.send_document(chat_id=cid,
+                              document=open(f'{path}/doc_storage/ent-{file_name}.docx', 'rb'))
+
+
+extract_entity_handler = CallbackQueryHandler(callback=extract_entity_callback,
+                                              pass_chat_data=True,
+                                              pattern='entity')
+
+
+def summarize_callback(update: Update, context: CallbackContext):
+
+    update = context.chat_data['update']
+    cid = update.effective_message.chat.id
+    q = context.chat_data['query']
+    storage_article = context.chat_data['url_section'].get(q)
+    toolkit = Toolkit()
+
+    if storage_article is not None and storage_article.get('sentences'):
+        current_article = storage_article['sentences']
+
+    else:
+        context.chat_data['url_section'].update({q: {'url': q}})
+        current_article = {'url': q}
 
     summarized_sentences = current_article.get('sentences')
 
@@ -93,7 +147,9 @@ def summarize_callback(update: Update, context: CallbackContext):
     convert_summarized_sentences = ''
 
     for index, value in enumerate(summarized_sentences):
-        convert_summarized_sentences += f'{index}. {value}\n'
+        value = value.replace("\n)", "")
+        convert_summarized_sentences += f'{index}. {value}'
+
     context.bot.send_message(chat_id=cid,
                              text=convert_summarized_sentences,
                              reply_markup=url_kb)
@@ -112,7 +168,9 @@ url_conversation_handler = ConversationHandler(
 
         URL_FUNCTIONS: [
             validate_handler,
-            summarize_handler
+            summarize_handler,
+            extract_article_handler,
+            extract_entity_handler
         ]
 
     },
