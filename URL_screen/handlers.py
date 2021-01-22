@@ -4,8 +4,10 @@ from telegram import (ParseMode, Update)
 from keyboards import back_to_menu_kb, menu_keyboard, url_kb
 from main_screen.handlers import back_to_menu_handler
 from Tools.tools import Toolkit
+from URL_screen.texts import sentiment_text, summarize_text
 import validators
 import os
+
 
 URL_FUNCTIONS = range(1)
 
@@ -61,14 +63,11 @@ def extract_article_callback(update: Update, context: CallbackContext):
     storage_article = context.chat_data['url_section'].get(q)
     toolkit = Toolkit()
 
-    if storage_article is not None and storage_article.get('title'):
-        current_article = {'title': storage_article['title'],
-                           'text': storage_article['article'],
-                           'author': storage_article['author'],
-                           'date': storage_article['publishDate'],
-                           'tags': storage_article['tags'],
-                           'url': storage_article['url']
-                           }
+    if storage_article is not None and storage_article.get('extract_article_file'):
+        context.bot.send_document(chat_id=cid,
+                                  document=storage_article.get('extract_article_file'))
+        print('send archive')
+        return
 
     else:
         context.chat_data['url_section'].update({q: {'url': q}})
@@ -81,12 +80,14 @@ def extract_article_callback(update: Update, context: CallbackContext):
                            'tags': article_info['tags']
                            }
 
-    file_name = toolkit.create_document(current_article)
+    name = f'url_extract_article_{cid}'
+    path = toolkit.create_document(current_article, cid)
 
-    path = os.getcwd()
+    file_id = context.bot.send_document(chat_id=cid,
+                                        document=open(path, 'rb')).document.file_id
 
-    context.bot.send_document(chat_id=cid,
-                              document=open(f'{path}/doc_storage/info-{file_name}.docx', 'rb'))
+    context.chat_data['url_section'][q].update({'extract_article_callback': file_id})
+    os.remove(path)
 
 
 extract_article_handler = CallbackQueryHandler(callback=extract_article_callback,
@@ -101,8 +102,10 @@ def extract_entity_callback(update: Update, context: CallbackContext):
     storage_article = context.chat_data['url_section'].get(q)
     toolkit = Toolkit()
 
-    if storage_article is not None and storage_article.get('entities'):
-        current_article = storage_article.get('entities')
+    if storage_article is not None and storage_article.get('entity_file'):
+        context.bot.send_document(chat_id=cid,
+                                  document=storage_article.get('entity_file'))
+        return
 
     else:
         context.chat_data['url_section'].update({q: {'url': q}})
@@ -110,17 +113,62 @@ def extract_entity_callback(update: Update, context: CallbackContext):
 
         current_article = article_info
 
-    file_name = toolkit.create_document(current_article)
+    name = f'url_extract_entity_{cid}'
+    path = toolkit.create_document(current_article, name)
 
-    path = os.getcwd()
+    file_id = context.bot.send_document(chat_id=cid,
+                                        document=open(path, 'rb')).document.file_id
 
-    context.bot.send_document(chat_id=cid,
-                              document=open(f'{path}/doc_storage/ent-{file_name}.docx', 'rb'))
+    context.chat_data['url_section'][q].update({'entity_file': file_id})
+    os.remove(path)
 
 
 extract_entity_handler = CallbackQueryHandler(callback=extract_entity_callback,
                                               pass_chat_data=True,
                                               pattern='entity')
+
+
+def extract_sentiment_callback(update: Update, context: CallbackContext):
+    update = context.chat_data['update']
+    cid = update.effective_message.chat.id
+    q = context.chat_data['query']
+    storage_article = context.chat_data['url_section'].get(q)
+    toolkit = Toolkit()
+
+    if storage_article is not None and storage_article.get('polarity'):
+        current_article = {'polarity': storage_article['polarity'],
+                           'polarity_confidence': storage_article['polarity_confidence'],
+                           'subjectivity': storage_article['subjectivity'],
+                           'subjectivity_confidence': storage_article['subjectivity_confidence']
+                           }
+
+    else:
+        context.chat_data['url_section'].update({q: {'url': q}})
+        article_info = toolkit.extract_sentiment({'url': q,
+                                                  'mode': 'document'})
+
+        current_article = {'polarity': article_info['polarity'],
+                           'polarity_confidence': article_info['polarity_confidence'],
+                           'subjectivity': article_info['subjectivity'],
+                           'subjectivity_confidence': article_info['subjectivity_confidence']
+                           }
+
+        context.chat_data['url_section'][q].update(current_article)
+
+    summarized_result = ''
+    for key, value in current_article.items():
+        key = key.replace('_', ' ')
+        summarized_result += sentiment_text.format(key, value)
+
+    context.bot.send_message(chat_id=cid,
+                             text=summarized_result,
+                             reply_markup=url_kb,
+                             parse_mode=ParseMode.HTML)
+
+
+extract_sentiment_handler = CallbackQueryHandler(callback=extract_sentiment_callback,
+                                                 pass_chat_data=True,
+                                                 pattern='sentiment')
 
 
 def summarize_callback(update: Update, context: CallbackContext):
@@ -132,7 +180,7 @@ def summarize_callback(update: Update, context: CallbackContext):
     toolkit = Toolkit()
 
     if storage_article is not None and storage_article.get('sentences'):
-        current_article = storage_article['sentences']
+        current_article = storage_article
 
     else:
         context.chat_data['url_section'].update({q: {'url': q}})
@@ -147,8 +195,7 @@ def summarize_callback(update: Update, context: CallbackContext):
     convert_summarized_sentences = ''
 
     for index, value in enumerate(summarized_sentences):
-        value = value.replace("\n)", "")
-        convert_summarized_sentences += f'{index}. {value}'
+        convert_summarized_sentences += summarize_text.format(index+1, value)
 
     context.bot.send_message(chat_id=cid,
                              text=convert_summarized_sentences,
@@ -170,7 +217,9 @@ url_conversation_handler = ConversationHandler(
             validate_handler,
             summarize_handler,
             extract_article_handler,
-            extract_entity_handler
+            extract_entity_handler,
+            extract_sentiment_handler
+
         ]
 
     },

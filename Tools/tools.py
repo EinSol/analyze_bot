@@ -40,14 +40,14 @@ class Toolkit:
         search_url = querystring.get('url')
         text = querystring.get('text')
 
-        parameters = {'url':search_url,
-                      'text':text}
+        parameters = {'url': search_url,
+                      'text': text}
 
         return self.response(entity_url, parameters)
 
     def extract_sentiment(self, querystring):
         search_url = querystring.get('url')
-        text = querystring['text']
+        text = querystring.get('text')
         mode = querystring['mode']
 
         parameters = {'url': search_url,
@@ -74,7 +74,7 @@ class Toolkit:
 
         return self.response(classify_url, parameters)
 
-    def create_document(self, querystring):
+    def create_document(self, querystring, name):
         title = querystring.get('title')
         text = querystring.get('text')
         document = Document()
@@ -90,71 +90,11 @@ class Toolkit:
                 continue
             document.add_paragraph(value)
 
-        path = os.getcwd()
-        document.save(f'{path}/doc_storage/ent-ffef.docx')
+        path = f'{os.getcwd()}/doc_storage/{name}.docx'
+        document.save(path)
 
-        return 'ffef'
-
-
+        return path
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# document = Document()
-#
-#
-#
-# p = document.add_paragraph('A plain paragraph having some ')
-# p.add_run('bold').bold = True
-# p.add_run(' and some ')
-# p.add_run('italic.').italic = True
-#
-# document.add_heading('Heading, level 1', level=1)
-# document.add_paragraph('Intense quote', style='Intense Quote')
-#
-# document.add_paragraph(
-#     'first item in unordered list', style='List Bullet'
-# )
-# document.add_paragraph(
-#     'first item in ordered list', style='List Number'
-# )
-#
-#
-# records = (
-#     (3, '101', 'Spam'),
-#     (7, '422', 'Eggs'),
-#     (4, '631', 'Spam, spam, eggs, and spam')
-# )
-#
-# table = document.add_table(rows=1, cols=3)
-# hdr_cells = table.rows[0].cells
-# hdr_cells[0].text = 'Qty'
-# hdr_cells[1].text = 'Id'
-# hdr_cells[2].text = 'Desc'
-# for qty, id, desc in records:
-#     row_cells = table.add_row().cells
-#     row_cells[0].text = str(qty)
-#     row_cells[1].text = id
-#     row_cells[2].text = desc
-#
-# document.add_page_break()
-#
-# document.save('demo.docx')
