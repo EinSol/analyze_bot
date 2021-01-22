@@ -1,45 +1,48 @@
 from telegram.ext import (MessageHandler, Filters, CallbackContext,
-                        ConversationHandler )
+                          ConversationHandler )
 from telegram import (ParseMode, Update)
 from keyboards import back_to_menu_kb, menu_keyboard, kb_dict
 from main_screen.handlers import back_to_menu_handler
-from URL_screen.texts import unvalid_text
-from tools_handlers.handlers import (summarize_handler, extract_sentiment_handler,
-                                     extract_entity_handler, extract_article_handler)
+from short_text_screen.texts import unvalid_text, big_text
+from tools_handlers.handlers import (extract_sentiment_handler,
+                                     extract_entity_handler, )
 import validators
 
 
+SHORT_TEXT_FUNCTIONS = range(1)
 
-URL_FUNCTIONS = range(1)
 
-
-def url_callback(update: Update, context: CallbackContext):
+def short_text_callback(update: Update, context: CallbackContext):
     cid = update.effective_message.chat.id
     q = update.message.text
 
     context.bot.send_message(chat_id=cid,
-                             text='Enter URL on article.',
+                             text='Enter your text or url on this text.',
                              reply_markup=back_to_menu_kb)
-    return URL_FUNCTIONS
+    return SHORT_TEXT_FUNCTIONS
 
 
-url_handler = MessageHandler(callback=url_callback,
-                             pass_chat_data=True,
-                             filters=Filters.regex('{}'.format(menu_keyboard[0][0])))
+short_text_handler = MessageHandler(callback=short_text_callback,
+                                    pass_chat_data=True,
+                                    filters=Filters.regex('{}'.format(menu_keyboard[0][1])))
 
 
 def validate_callback(update: Update, context: CallbackContext):
     cid = update.effective_message.chat.id
     q = update.message.text.lstrip().rstrip()
+    if len(q) > 500:
+        update.message.reply_text(text=big_text)
+        return
 
-    if not validators.url(q):
+    if not validators.url(q) and len(q.split(' ')) == 1:
         update.message.reply_text(text=unvalid_text)
         return
+
     context.chat_data.update({'query': q,
                               'update': update,
-                              'current_section': 'url_section'})
+                              'current_section': 'short_text_section'})
 
-    url_functions_callback(update, context)
+    short_text_functions_callback(update, context)
 
 
 validate_handler = MessageHandler(callback=validate_callback,
@@ -47,7 +50,7 @@ validate_handler = MessageHandler(callback=validate_callback,
                                   filters=(Filters.text & ~Filters.regex('\U00002B05 Back to Menu')))
 
 
-def url_functions_callback(update: Update, context: CallbackContext):
+def short_text_functions_callback(update: Update, context: CallbackContext):
     cid = update.effective_message.chat.id
     q = update.message.text
     section_name = context.chat_data['current_section']
@@ -57,24 +60,22 @@ def url_functions_callback(update: Update, context: CallbackContext):
                              reply_markup=kb_dict[section_name])
 
 
-url_conversation_handler = ConversationHandler(
+short_text_conversation_handler = ConversationHandler(
 
-    entry_points=[url_handler],
+    entry_points=[short_text_handler],
 
     states={
 
-        URL_FUNCTIONS: [
+        SHORT_TEXT_FUNCTIONS: [
             validate_handler,
-            summarize_handler,
-            extract_article_handler,
             extract_entity_handler,
             extract_sentiment_handler
 
         ]
 
     },
+
     fallbacks=[back_to_menu_handler],
-    name='URL',
+    name='short_text',
     persistent=False
 )
-

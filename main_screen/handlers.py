@@ -1,4 +1,5 @@
-from telegram.ext import (CommandHandler, MessageHandler, Filters, CallbackContext)
+from telegram.ext import (CommandHandler, MessageHandler, Filters,
+                          CallbackContext, ConversationHandler)
 from telegram import (ParseMode, Update)
 from keyboards import menu_kb, back_to_menu_button
 
@@ -31,12 +32,14 @@ def menu_callback(update: Update, context: CallbackContext):
                              parse_mode=ParseMode.HTML,
                              reply_markup=menu_kb)
 
+    return ConversationHandler.END
+
 
 menu_handler = CommandHandler(command=['start'],
                               callback=menu_callback,
                               pass_chat_data=True)
 
 back_to_menu_handler = MessageHandler(callback=menu_callback,
-                                   pass_chat_data=True,
-                                   filters=Filters.regex('^{}'.format(back_to_menu_button)))
+                                      pass_chat_data=True,
+                                      filters=Filters.regex('^{}'.format(back_to_menu_button)))
 
