@@ -4,8 +4,8 @@ from telegram import (ParseMode, Update)
 from keyboards import back_to_menu_kb, menu_keyboard, kb_dict
 from main_screen.handlers import back_to_menu_handler
 from short_text_screen.texts import unvalid_text, big_text
-from tools_handlers.handlers import (extract_sentiment_handler,
-                                     extract_entity_handler, )
+from tools_handlers.handlers import (extract_sentiment_handler, classify_handler,
+                                     extract_entity_handler, hashtag_handler)
 import validators
 
 
@@ -31,11 +31,11 @@ def validate_callback(update: Update, context: CallbackContext):
     cid = update.effective_message.chat.id
     q = update.message.text.lstrip().rstrip()
     if len(q) > 500:
-        update.message.reply_text(text=big_text)
+        update.message.reply_text(big_text)
         return
 
     if not validators.url(q) and len(q.split(' ')) == 1:
-        update.message.reply_text(text=unvalid_text)
+        update.message.reply_text(unvalid_text)
         return
 
     context.chat_data.update({'query': q,
@@ -69,8 +69,9 @@ short_text_conversation_handler = ConversationHandler(
         SHORT_TEXT_FUNCTIONS: [
             validate_handler,
             extract_entity_handler,
-            extract_sentiment_handler
-
+            extract_sentiment_handler,
+            hashtag_handler,
+            classify_handler
         ]
 
     },

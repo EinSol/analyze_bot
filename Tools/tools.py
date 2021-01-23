@@ -48,17 +48,15 @@ class Toolkit:
     def extract_sentiment(self, querystring):
         search_url = querystring.get('url')
         text = querystring.get('text')
-        mode = querystring['mode']
 
         parameters = {'url': search_url,
-                      'text': text,
-                      'mode': mode}
+                      'text': text}
 
         return self.response(sentiment_url, parameters)
 
     def suggest_hashtag(self, querystring):
         search_url = querystring.get('url')
-        text = querystring['text']
+        text = querystring.get('text')
 
         parameters = {'url': search_url,
                       'text': text}
@@ -67,7 +65,7 @@ class Toolkit:
 
     def classify(self, querystring):
         search_url = querystring.get('url')
-        text = querystring['text']
+        text = querystring.get('text')
 
         parameters = {'url': search_url,
                       'text': text}

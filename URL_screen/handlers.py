@@ -8,8 +8,6 @@ from tools_handlers.handlers import (summarize_handler, extract_sentiment_handle
                                      extract_entity_handler, extract_article_handler)
 import validators
 
-
-
 URL_FUNCTIONS = range(1)
 
 
