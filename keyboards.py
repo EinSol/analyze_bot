@@ -2,8 +2,7 @@ from telegram import ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMa
 
 
 menu_keyboard = [['URl', 'Short text'],
-                 ['File', 'History'],
-                 ['Help']]
+                 ['File', 'Help']]
 
 menu_kb = ReplyKeyboardMarkup(keyboard=menu_keyboard,
                               resize_keyboard=True,
@@ -29,7 +28,8 @@ url_keyboard = [[extract_article_button, entity_button],
 short_text_keyboard = [[entity_button, sentiment_button],
                        [hashtag_button, classify_button]]
 
-file_keyboard = []
+file_keyboard = [[summarize_button, sentiment_button],
+                 [entity_button]]
 
 
 kb_dict = {'url_section': InlineKeyboardMarkup(inline_keyboard=url_keyboard),

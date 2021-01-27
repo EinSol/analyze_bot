@@ -2,6 +2,7 @@ import requests
 from decouple import config
 from docx import Document
 import os
+import re
 from Tools.requests_url import (summarize_url, extract_article_url, entity_url,
                                 sentiment_url, hashtag_url, classify_url)
 
@@ -25,7 +26,7 @@ class Toolkit:
 
     def summarize(self, querystring):
         title = querystring.get('title')
-        length = querystring.get('length', 10)
+        length = querystring.get('length', 5)
         text = querystring.get('text')
         search_url = querystring.get('url')
 
@@ -73,8 +74,6 @@ class Toolkit:
         return self.response(classify_url, parameters)
 
     def create_document(self, querystring, name):
-        title = querystring.get('title')
-        text = querystring.get('text')
         document = Document()
         document.add_heading('Analyze results', 0)
 
@@ -83,7 +82,7 @@ class Toolkit:
             if type(value) == list:
                 for subvalue in value:
                     document.add_paragraph(
-                        subvalue, style='List Bullet'
+                        subvalue, style='List Number'
                         )
                 continue
             document.add_paragraph(value)
@@ -94,5 +93,19 @@ class Toolkit:
         return path
 
 
+def get_parts_of_text(content):
+    temp = ''
+    text = content.split('.')
+    parts = []
+    title = text[0]
+    for text_part in text:
+        if len(temp) > 4900:
+            parts.append(temp)
+            temp = ''
+        temp += re.sub(r'\\x[a-z,0-9]{2}', '', f'{text_part}.'.replace('\\n', ' ')).replace('\\', '')
 
-
+    if temp:
+        parts.append(temp)
+    print(len(parts[1]))
+    print(parts[1])
+    return parts, title
