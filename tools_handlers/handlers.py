@@ -265,8 +265,6 @@ def classify_callback(update: Update, context: CallbackContext):
                                                                 value['label'],
                                                                 value['confidence'])
 
-    convert_summarized_categories += f'\n{"".join(summarized_categories)}'
-
     context.bot.send_message(chat_id=cid,
                              text=convert_summarized_categories,
                              reply_markup=kb_dict[section_name],

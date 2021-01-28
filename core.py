@@ -2,6 +2,7 @@ from main_screen.handlers import (new_user_handler, menu_handler)
 from URL_screen.handlers import url_conversation_handler
 from short_text_screen.handlers import short_text_conversation_handler
 from file_screen.handlers import file_conversation_handler
+from help_screen.handlers import help_command_handler, help_handler
 from telegram.ext import Updater
 from decouple import config
 import sentry_sdk
@@ -51,6 +52,8 @@ if __name__ == '__main__':
     bot.dispatcher.add_handler(url_conversation_handler)
     bot.dispatcher.add_handler(short_text_conversation_handler)
     bot.dispatcher.add_handler(file_conversation_handler)
+    bot.dispatcher.add_handler(help_handler)
+    bot.dispatcher.add_handler(help_command_handler)
 
     bot.updater.start_polling()
 

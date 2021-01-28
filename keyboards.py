@@ -1,8 +1,8 @@
 from telegram import ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 
 
-menu_keyboard = [['URl', 'Short text'],
-                 ['File', 'Help']]
+menu_keyboard = [['\U0001F30D Url', '\U0000270F Short text'],
+                 ['\U0001F4C3 File', '\U00002753 Help']]
 
 menu_kb = ReplyKeyboardMarkup(keyboard=menu_keyboard,
                               resize_keyboard=True,
@@ -37,8 +37,9 @@ kb_dict = {'url_section': InlineKeyboardMarkup(inline_keyboard=url_keyboard),
            'file_section': InlineKeyboardMarkup(inline_keyboard=file_keyboard)}
 
 back_to_menu_button = '\U00002B05 Back to Menu'
+help_button = '\U00002753 Help'
 
-back_to_menu_kb = ReplyKeyboardMarkup(keyboard=[[back_to_menu_button]],
+back_to_menu_kb = ReplyKeyboardMarkup(keyboard=[[back_to_menu_button, help_button]],
                                       resize_keyboard=True,
                                       one_time_keyboard=True)
 

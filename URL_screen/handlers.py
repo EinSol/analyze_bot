@@ -1,9 +1,10 @@
 from telegram.ext import (MessageHandler, Filters, CallbackContext,
                         ConversationHandler )
 from telegram import (ParseMode, Update)
-from keyboards import back_to_menu_kb, menu_keyboard, kb_dict
+from keyboards import back_to_menu_kb, menu_keyboard, kb_dict, back_to_menu_button, help_button
+from help_screen.handlers import help_handler
 from main_screen.handlers import back_to_menu_handler
-from URL_screen.texts import unvalid_text
+from URL_screen.texts import unvalid_text, welcome_text, ask_text
 from tools_handlers.handlers import (summarize_handler, extract_sentiment_handler,
                                      extract_entity_handler, extract_article_handler)
 import validators
@@ -16,7 +17,7 @@ def url_callback(update: Update, context: CallbackContext):
     q = update.message.text
 
     context.bot.send_message(chat_id=cid,
-                             text='Enter URL on article.',
+                             text=welcome_text,
                              reply_markup=back_to_menu_kb)
     return URL_FUNCTIONS
 
@@ -42,7 +43,9 @@ def validate_callback(update: Update, context: CallbackContext):
 
 validate_handler = MessageHandler(callback=validate_callback,
                                   pass_chat_data=True,
-                                  filters=(Filters.text & ~Filters.regex('\U00002B05 Back to Menu')))
+                                  filters=(Filters.text &
+                                           ~Filters.regex(back_to_menu_button) &
+                                           ~Filters.regex(help_button)))
 
 
 def url_functions_callback(update: Update, context: CallbackContext):
@@ -51,7 +54,7 @@ def url_functions_callback(update: Update, context: CallbackContext):
     section_name = context.chat_data['current_section']
 
     context.bot.send_message(chat_id=cid,
-                             text='What do you want to do?',
+                             text=ask_text,
                              reply_markup=kb_dict[section_name])
 
 
@@ -66,13 +69,14 @@ url_conversation_handler = ConversationHandler(
             summarize_handler,
             extract_article_handler,
             extract_entity_handler,
-            extract_sentiment_handler
+            extract_sentiment_handler,
+            help_handler
 
         ]
 
     },
     fallbacks=[back_to_menu_handler],
-    name='URL',
+    name='url',
     persistent=False
 )
 

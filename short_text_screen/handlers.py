@@ -1,9 +1,10 @@
 from telegram.ext import (MessageHandler, Filters, CallbackContext,
                           ConversationHandler )
 from telegram import (ParseMode, Update)
-from keyboards import back_to_menu_kb, menu_keyboard, kb_dict
+from keyboards import back_to_menu_kb, menu_keyboard, kb_dict, back_to_menu_button, help_button
 from main_screen.handlers import back_to_menu_handler
-from short_text_screen.texts import unvalid_text, big_text
+from help_screen.handlers import help_handler
+from short_text_screen.texts import unvalid_text, big_text, welcome_text, ask_text
 from tools_handlers.handlers import (extract_sentiment_handler, classify_handler,
                                      extract_entity_handler, hashtag_handler)
 import validators
@@ -17,7 +18,7 @@ def short_text_callback(update: Update, context: CallbackContext):
     q = update.message.text
 
     context.bot.send_message(chat_id=cid,
-                             text='Enter your text or url on this text.',
+                             text=welcome_text,
                              reply_markup=back_to_menu_kb)
     return SHORT_TEXT_FUNCTIONS
 
@@ -47,7 +48,9 @@ def validate_callback(update: Update, context: CallbackContext):
 
 validate_handler = MessageHandler(callback=validate_callback,
                                   pass_chat_data=True,
-                                  filters=(Filters.text & ~Filters.regex('\U00002B05 Back to Menu')))
+                                  filters=(Filters.text &
+                                           ~Filters.regex(back_to_menu_button) &
+                                           ~Filters.regex(help_button)))
 
 
 def short_text_functions_callback(update: Update, context: CallbackContext):
@@ -56,7 +59,7 @@ def short_text_functions_callback(update: Update, context: CallbackContext):
     section_name = context.chat_data['current_section']
 
     context.bot.send_message(chat_id=cid,
-                             text='What do you want to do?',
+                             text=ask_text,
                              reply_markup=kb_dict[section_name])
 
 
@@ -71,7 +74,8 @@ short_text_conversation_handler = ConversationHandler(
             extract_entity_handler,
             extract_sentiment_handler,
             hashtag_handler,
-            classify_handler
+            classify_handler,
+            help_handler
         ]
 
     },
