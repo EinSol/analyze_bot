@@ -106,6 +106,5 @@ def get_parts_of_text(content):
 
     if temp:
         parts.append(temp)
-    print(len(parts[1]))
-    print(parts[1])
+
     return parts, title

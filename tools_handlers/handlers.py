@@ -1,4 +1,4 @@
-from telegram.ext import ( CallbackContext, CallbackQueryHandler)
+from telegram.ext import (CallbackContext, CallbackQueryHandler)
 from telegram import (ParseMode, Update)
 from keyboards import kb_dict, muting_kb
 from Tools.tools import Toolkit, get_parts_of_text
@@ -12,7 +12,6 @@ import validators
 
 
 def extract_article_callback(update: Update, context: CallbackContext):
-
     cid = update.callback_query.message.chat.id
     mid = update.callback_query.message.message_id
     text = update.callback_query.message.text
@@ -33,13 +32,14 @@ def extract_article_callback(update: Update, context: CallbackContext):
 
         context.bot.edit_message_reply_markup(message_id=mid,
                                               chat_id=cid,
-                                              text=text,
                                               reply_markup=None)
-        
-        context.bot.send_document(chat_id=cid,
-                                  document=storage_article.get('extract_article_file'),
-                                  reply_markup=kb_dict[section_name])
-        
+
+        file = context.bot.send_document(chat_id=cid,
+                                         document=storage_article.get('extract_article_file'),
+                                         reply_markup=kb_dict[section_name])
+
+        context.chat_data.update({'messages_ids': [file.message_id]})
+
         return
 
     else:
@@ -60,11 +60,12 @@ def extract_article_callback(update: Update, context: CallbackContext):
                                           chat_id=cid,
                                           reply_markup=None)
 
-    file_id = context.bot.send_document(chat_id=cid,
-                                        document=open(path, 'rb'),
-                                        reply_markup=kb_dict[section_name]).document.file_id
+    file = context.bot.send_document(chat_id=cid,
+                                     document=open(path, 'rb'),
+                                     reply_markup=kb_dict[section_name])
 
-    context.chat_data[section_name][q].update({'extract_article_file': file_id})
+    context.chat_data.update({'file_ids': [file.message_id]})
+    context.chat_data[section_name][q].update({'extract_article_file': file.document.file_id})
     os.remove(path)
 
 
@@ -74,7 +75,6 @@ extract_article_handler = CallbackQueryHandler(callback=extract_article_callback
 
 
 def extract_entity_callback(update: Update, context: CallbackContext):
-
     cid = update.callback_query.message.chat.id
     mid = update.callback_query.message.message_id
     text = update.callback_query.message.text
@@ -94,12 +94,14 @@ def extract_entity_callback(update: Update, context: CallbackContext):
 
         context.bot.edit_message_reply_markup(message_id=mid,
                                               chat_id=cid,
-                                              text=text,
                                               reply_markup=None)
 
-        context.bot.send_document(chat_id=cid,
-                                  document=storage_article.get('entity_file'),
-                                  reply_markup=kb_dict[section_name])
+        file = context.bot.send_document(chat_id=cid,
+                                         document=storage_article.get('entity_file'),
+                                         reply_markup=kb_dict[section_name])
+
+        context.chat_data.update({'messages_ids': [file.message_id]})
+
         return
 
     else:
@@ -122,11 +124,12 @@ def extract_entity_callback(update: Update, context: CallbackContext):
                                           chat_id=cid,
                                           reply_markup=None)
 
-    file_id = context.bot.send_document(chat_id=cid,
-                                        document=open(path, 'rb'),
-                                        reply_markup=kb_dict[section_name]).document.file_id
+    file = context.bot.send_document(chat_id=cid,
+                                     document=open(path, 'rb'),
+                                     reply_markup=kb_dict[section_name])
 
-    context.chat_data[section_name][q].update({'entity_file': file_id})
+    context.chat_data.update({'file_ids': [file.message_id]})
+    context.chat_data[section_name][q].update({'entity_file': file.document.file_id})
     os.remove(path)
 
 
@@ -136,7 +139,6 @@ extract_entity_handler = CallbackQueryHandler(callback=extract_entity_callback,
 
 
 def extract_sentiment_callback(update: Update, context: CallbackContext):
-
     cid = update.callback_query.message.chat.id
     mid = update.callback_query.message.message_id
     text = update.callback_query.message.text
@@ -184,10 +186,12 @@ def extract_sentiment_callback(update: Update, context: CallbackContext):
                                           chat_id=cid,
                                           reply_markup=None)
 
-    context.bot.send_message(chat_id=cid,
-                             text=summarize_sentiment,
-                             reply_markup=kb_dict[section_name],
-                             parse_mode=ParseMode.HTML)
+    mid = context.bot.send_message(chat_id=cid,
+                                   text=summarize_sentiment,
+                                   reply_markup=kb_dict[section_name],
+                                   parse_mode=ParseMode.HTML)
+
+    context.chat_data.update({'file_ids': [mid.message_id]})
 
 
 extract_sentiment_handler = CallbackQueryHandler(callback=extract_sentiment_callback,
@@ -196,7 +200,6 @@ extract_sentiment_handler = CallbackQueryHandler(callback=extract_sentiment_call
 
 
 def summarize_callback(update: Update, context: CallbackContext):
-
     cid = update.callback_query.message.chat.id
     mid = update.callback_query.message.message_id
     text = update.callback_query.message.text
@@ -228,16 +231,18 @@ def summarize_callback(update: Update, context: CallbackContext):
     convert_summarized_sentences = summarize_title
 
     for index, value in enumerate(summarized_sentences):
-        convert_summarized_sentences += summarize_text.format(index+1, value)
+        convert_summarized_sentences += summarize_text.format(index + 1, value)
 
     context.bot.edit_message_reply_markup(message_id=mid,
                                           chat_id=cid,
                                           reply_markup=None)
 
-    context.bot.send_message(chat_id=cid,
-                             text=convert_summarized_sentences,
-                             parse_mode=ParseMode.HTML,
-                             reply_markup=kb_dict[section_name])
+    mid = context.bot.send_message(chat_id=cid,
+                                   text=convert_summarized_sentences,
+                                   parse_mode=ParseMode.HTML,
+                                   reply_markup=kb_dict[section_name])
+
+    context.chat_data.update({'file_ids': [mid.message_id]})
 
 
 summarize_handler = CallbackQueryHandler(callback=summarize_callback,
@@ -246,7 +251,6 @@ summarize_handler = CallbackQueryHandler(callback=summarize_callback,
 
 
 def hashtag_callback(update: Update, context: CallbackContext):
-
     cid = update.callback_query.message.chat.id
     mid = update.callback_query.message.message_id
     text = update.callback_query.message.text
@@ -282,7 +286,7 @@ def hashtag_callback(update: Update, context: CallbackContext):
     convert_summarized_hashtags = hashtags_title
 
     for index, value in enumerate(summarized_hashtags):
-        convert_summarized_hashtags += hashtags_text.format(index+1, value)
+        convert_summarized_hashtags += hashtags_text.format(index + 1, value)
 
     convert_summarized_hashtags += f'\n{"".join(summarized_hashtags)}'
 
@@ -290,11 +294,13 @@ def hashtag_callback(update: Update, context: CallbackContext):
                                           chat_id=cid,
                                           reply_markup=None)
 
-    context.bot.send_message(chat_id=cid,
-                             text=convert_summarized_hashtags,
-                             parse_mode=ParseMode.HTML,
-                             reply_markup=kb_dict[section_name],
-                             )
+    mid = context.bot.send_message(chat_id=cid,
+                                   text=convert_summarized_hashtags,
+                                   parse_mode=ParseMode.HTML,
+                                   reply_markup=kb_dict[section_name],
+                                   )
+
+    context.chat_data.update({'file_ids': [mid.message_id]})
 
 
 hashtag_handler = CallbackQueryHandler(callback=hashtag_callback,
@@ -303,7 +309,6 @@ hashtag_handler = CallbackQueryHandler(callback=hashtag_callback,
 
 
 def classify_callback(update: Update, context: CallbackContext):
-
     cid = update.callback_query.message.chat.id
     mid = update.callback_query.message.message_id
     text = update.callback_query.message.text
@@ -339,13 +344,16 @@ def classify_callback(update: Update, context: CallbackContext):
     convert_summarized_categories = categories_title
 
     if not summarized_categories:
-        context.bot.send_message(chat_id=cid,
-                                 text=nothing_text,
-                                 parse_mode=ParseMode.HTML)
+        mid = context.bot.send_message(chat_id=cid,
+                                       text=nothing_text,
+                                       parse_mode=ParseMode.HTML)
+
+        context.chat_data.update({'file_ids': [mid.message_id]})
+
         return
 
     for index, value in enumerate(summarized_categories):
-        convert_summarized_categories += categories_text.format(index+1,
+        convert_summarized_categories += categories_text.format(index + 1,
                                                                 value['label'],
                                                                 value['confidence'])
 
@@ -365,7 +373,6 @@ classify_handler = CallbackQueryHandler(callback=classify_callback,
 
 
 def extract_entity_file_callback(update: Update, context: CallbackContext):
-
     cid = update.callback_query.message.chat.id
     mid = update.callback_query.message.message_id
     text = update.callback_query.message.text
@@ -384,15 +391,17 @@ def extract_entity_file_callback(update: Update, context: CallbackContext):
                                     text=answer_query_text)
 
     if storage_article is not None and storage_article.get('entity_file'):
-
         context.bot.edit_message_reply_markup(message_id=mid,
                                               chat_id=cid,
                                               text=text,
                                               reply_markup=None)
 
-        context.bot.send_document(chat_id=cid,
-                                  document=storage_article.get('entity_file'),
-                                  reply_markup=kb_dict[section_name])
+        file = context.bot.send_document(chat_id=cid,
+                                         document=storage_article.get('entity_file'),
+                                         reply_markup=kb_dict[section_name])
+
+        context.chat_data.update({'file_ids': [file.message_id]})
+
         return
 
     path = f'{os.getcwd()}/doc_storage/{file_name}'
@@ -421,7 +430,6 @@ def extract_entity_file_callback(update: Update, context: CallbackContext):
             else:
                 summarize_entities.update({name: value})
 
-
     name = f'file_extract_entity_{cid}'
     path = toolkit.create_document(summarize_entities, name)
 
@@ -429,11 +437,13 @@ def extract_entity_file_callback(update: Update, context: CallbackContext):
                                           chat_id=cid,
                                           reply_markup=None)
 
-    file_id = context.bot.send_document(chat_id=cid,
-                                        document=open(path, 'rb'),
-                                        reply_markup=kb_dict[section_name]).document.file_id
+    file = context.bot.send_document(chat_id=cid,
+                                     document=open(path, 'rb'),
+                                     reply_markup=kb_dict[section_name])
 
-    context.chat_data[section_name][file_name].update({'entity_file': file_id})
+    context.chat_data.update({'file_ids': [file.message_id]})
+
+    context.chat_data[section_name][file_name].update({'entity_file': file.document.file_id})
     os.remove(path)
 
 
@@ -443,7 +453,6 @@ extract_entity_file_handler = CallbackQueryHandler(callback=extract_entity_file_
 
 
 def extract_sentiment_file_callback(update: Update, context: CallbackContext):
-
     cid = update.callback_query.message.chat.id
     mid = update.callback_query.message.message_id
     text = update.callback_query.message.text
@@ -497,10 +506,12 @@ def extract_sentiment_file_callback(update: Update, context: CallbackContext):
     context.bot.edit_message_reply_markup(message_id=mid,
                                           chat_id=cid,
                                           reply_markup=None)
-    context.bot.send_message(chat_id=cid,
-                             text=summarize_sentiment,
-                             reply_markup=kb_dict[section_name],
-                             parse_mode=ParseMode.HTML)
+    mid = context.bot.send_message(chat_id=cid,
+                                   text=summarize_sentiment,
+                                   reply_markup=kb_dict[section_name],
+                                   parse_mode=ParseMode.HTML)
+
+    context.chat_data.update({'file_ids': [mid.message_id]})
 
 
 extract_sentiment_file_handler = CallbackQueryHandler(callback=extract_sentiment_file_callback,
@@ -509,7 +520,6 @@ extract_sentiment_file_handler = CallbackQueryHandler(callback=extract_sentiment
 
 
 def summarize_file_callback(update: Update, context: CallbackContext):
-
     cid = update.callback_query.message.chat.id
     mid = update.callback_query.message.message_id
     text = update.callback_query.message.text
@@ -562,11 +572,12 @@ def summarize_file_callback(update: Update, context: CallbackContext):
                                           chat_id=cid,
                                           reply_markup=None)
 
-    sumarrize_file_id = context.bot.send_document(chat_id=cid,
-                                                  document=open(path, 'rb'),
-                                                  reply_markup=kb_dict[section_name]).document.file_id
+    file = context.bot.send_document(chat_id=cid,
+                                     document=open(path, 'rb'),
+                                     reply_markup=kb_dict[section_name])
 
-    context.chat_data[section_name][file_name].update({'summarize_file': sumarrize_file_id})
+    context.chat_data.update({'file_ids': [file.message_id]})
+    context.chat_data[section_name][file_name].update({'summarize_file': file.document.file_id})
     os.remove(path)
 
 

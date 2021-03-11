@@ -1,6 +1,7 @@
 from telegram.ext import (MessageHandler, Filters, CallbackContext,
-                          ConversationHandler )
+                          ConversationHandler)
 from telegram import (ParseMode, Update)
+from chattools import clean_chat
 from keyboards import back_to_menu_kb, menu_keyboard, kb_dict, back_to_menu_button, help_button
 from help_screen.handlers import help_handler
 from main_screen.handlers import back_to_menu_handler
@@ -29,13 +30,19 @@ file_handler = MessageHandler(callback=file_callback,
 def validate_callback(update: Update, context: CallbackContext):
     cid = update.effective_message.chat.id
     q = update.message.document
+
+    clean_chat(update, context)
+
     if q is None:
-        update.message.reply_text(no_file_text)
+        mid = update.message.reply_text(no_file_text).message_id
+        context.chat_data['message_ids'].append(mid)
         return
 
     q = q.to_dict()
-    if q['file_size'] > 5*(10**7):
-        update.message.reply_text(big_file_text)
+    if q['file_size'] > 5 * (10 ** 7):
+        mid = update.message.reply_text(big_file_text).message_id
+        context.chat_data['message_ids'].append(mid)
+
         return
 
     context.chat_data.update({'query': q,
@@ -57,9 +64,10 @@ def file_functions_callback(update: Update, context: CallbackContext):
     q = update.message.text
     section_name = context.chat_data['current_section']
 
-    context.bot.send_message(chat_id=cid,
-                             text=ask_text,
-                             reply_markup=kb_dict[section_name])
+    mid = context.bot.send_message(chat_id=cid,
+                                   text=ask_text,
+                                   reply_markup=kb_dict[section_name]).message_id
+    context.chat_data['message_ids'].append(mid)
 
 
 file_conversation_handler = ConversationHandler(

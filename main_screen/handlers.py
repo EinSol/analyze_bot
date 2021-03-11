@@ -1,6 +1,7 @@
 from telegram.ext import (CommandHandler, MessageHandler, Filters,
                           CallbackContext, ConversationHandler)
 from telegram import (ParseMode, Update)
+from chattools import clean_chat
 from main_screen.texts import choose_text, welcome_text
 from keyboards import menu_kb, back_to_menu_button
 
@@ -8,11 +9,13 @@ from keyboards import menu_kb, back_to_menu_button
 def new_user_callback(update: Update, context: CallbackContext):
     username = update.message.chat.username
     update.message.reply_text(welcome_text.format(username))
-    context.chat_data.update({'url_section': {}})
-    context.chat_data.update({'file_section': {}})
-    context.chat_data.update({'short_text_section': {}})
-    context.chat_data.update({'history_section': {}})
+    if context.chat_data.get('url_section', None) is None:
+        context.chat_data.update({'url_section': {}})
+        context.chat_data.update({'file_section': {}})
+        context.chat_data.update({'short_text_section': {}})
+        context.chat_data.update({'history_section': {}})
 
+    clean_chat(update, context)
     menu_callback(update, context)
 
 
@@ -26,6 +29,7 @@ def menu_callback(update: Update, context: CallbackContext):
     cid = update.effective_message.chat.id
     q = update.message.text
 
+    clean_chat(update, context)
     context.bot.send_message(chat_id=cid,
                              text=choose_text,
                              parse_mode=ParseMode.HTML,
