@@ -1,3 +1,4 @@
+answer_query_text = 'Processing, please wait. It might take up to 30 Seconds...'
 sentiment_text = '<b>{}</b>: {}\n\n'
 sentiment_title = '<b>SENTIMENT</b>\n\n'
 summarize_text = '<b>{}</b>: {}\n\n'

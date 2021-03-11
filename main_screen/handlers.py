@@ -1,20 +1,19 @@
 from telegram.ext import (CommandHandler, MessageHandler, Filters,
                           CallbackContext, ConversationHandler)
 from telegram import (ParseMode, Update)
+from main_screen.texts import choose_text, welcome_text
 from keyboards import menu_kb, back_to_menu_button
-
-MENU = range(1)
 
 
 def new_user_callback(update: Update, context: CallbackContext):
-    update.message.reply_text(text='Welcome Stranger!')
-    menu_callback(update, context)
+    username = update.message.chat.username
+    update.message.reply_text(welcome_text.format(username))
     context.chat_data.update({'url_section': {}})
     context.chat_data.update({'file_section': {}})
     context.chat_data.update({'short_text_section': {}})
     context.chat_data.update({'history_section': {}})
 
-    return MENU
+    menu_callback(update, context)
 
 
 new_user_handler = CommandHandler(command='start',
@@ -28,14 +27,14 @@ def menu_callback(update: Update, context: CallbackContext):
     q = update.message.text
 
     context.bot.send_message(chat_id=cid,
-                             text='Choose text type:',
+                             text=choose_text,
                              parse_mode=ParseMode.HTML,
                              reply_markup=menu_kb)
 
     return ConversationHandler.END
 
 
-menu_handler = CommandHandler(command=['start'],
+menu_handler = CommandHandler(command=['start', 'menu'],
                               callback=menu_callback,
                               pass_chat_data=True)
 

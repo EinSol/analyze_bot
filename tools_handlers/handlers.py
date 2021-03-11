@@ -1,10 +1,11 @@
 from telegram.ext import ( CallbackContext, CallbackQueryHandler)
 from telegram import (ParseMode, Update)
-from keyboards import kb_dict
+from keyboards import kb_dict, muting_kb
 from Tools.tools import Toolkit, get_parts_of_text
 from tools_handlers.texts import (sentiment_text, summarize_text, hashtags_text,
                                   categories_text, categories_title, hashtags_title,
-                                  sentiment_title, summarize_title, error_text, nothing_text)
+                                  sentiment_title, summarize_title, error_text, nothing_text,
+                                  answer_query_text)
 import os
 import textract
 import validators
@@ -12,34 +13,52 @@ import validators
 
 def extract_article_callback(update: Update, context: CallbackContext):
 
-    update = context.chat_data['update']
-    cid = update.effective_message.chat.id
+    cid = update.callback_query.message.chat.id
+    mid = update.callback_query.message.message_id
+    text = update.callback_query.message.text
     q = context.chat_data['query']
     section_name = context.chat_data['current_section']
     storage_article = context.chat_data[section_name].get(q)
 
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=muting_kb)
+
+    context.bot.answerCallbackQuery(callback_query_id=update.callback_query.id,
+                                    text=answer_query_text)
+
     toolkit = Toolkit()
 
     if storage_article is not None and storage_article.get('extract_article_file'):
+
+        context.bot.edit_message_reply_markup(message_id=mid,
+                                              chat_id=cid,
+                                              text=text,
+                                              reply_markup=None)
+        
         context.bot.send_document(chat_id=cid,
                                   document=storage_article.get('extract_article_file'),
                                   reply_markup=kb_dict[section_name])
-        print('send archive')
+        
         return
 
     else:
         context.chat_data[section_name].update({q: {'url': q}})
         article_info = toolkit.extract_article_info(q)
 
-        current_article = {'title': article_info['title'],
-                           'text': article_info['article'],
-                           'author': article_info['author'],
-                           'date': article_info['publishDate'],
-                           'tags': article_info['tags']
+        current_article = {'title': article_info.get('title', 'unknown'),
+                           'text': article_info.get('article', 'unknown'),
+                           'author': article_info.get('author', 'unknown'),
+                           'date': article_info.get('publishDate', 'unknown'),
+                           'tags': article_info.get('tags', 'unknown')
                            }
 
     name = f'url_extract_article_{cid}'
     path = toolkit.create_document(current_article, name)
+
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=None)
 
     file_id = context.bot.send_document(chat_id=cid,
                                         document=open(path, 'rb'),
@@ -56,14 +75,28 @@ extract_article_handler = CallbackQueryHandler(callback=extract_article_callback
 
 def extract_entity_callback(update: Update, context: CallbackContext):
 
-    update = context.chat_data['update']
-    cid = update.effective_message.chat.id
+    cid = update.callback_query.message.chat.id
+    mid = update.callback_query.message.message_id
+    text = update.callback_query.message.text
     q = context.chat_data['query']
     section_name = context.chat_data['current_section']
     storage_article = context.chat_data[section_name].get(q)
     toolkit = Toolkit()
 
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=muting_kb)
+
+    context.bot.answerCallbackQuery(callback_query_id=update.callback_query.id,
+                                    text=answer_query_text)
+
     if storage_article is not None and storage_article.get('entity_file'):
+
+        context.bot.edit_message_reply_markup(message_id=mid,
+                                              chat_id=cid,
+                                              text=text,
+                                              reply_markup=None)
+
         context.bot.send_document(chat_id=cid,
                                   document=storage_article.get('entity_file'),
                                   reply_markup=kb_dict[section_name])
@@ -75,11 +108,19 @@ def extract_entity_callback(update: Update, context: CallbackContext):
             article_info = toolkit.extract_entity({'url': q})['entities']
         else:
             context.chat_data[section_name].update({q: {'text': q}})
-            article_info = toolkit.extract_entity({'text': q})['entities']
+            try:
+                article_info = toolkit.extract_entity({'text': q})['entities']
+            except:
+                update.callback_query.message.reply_text(nothing_text)
+                return
         current_article = article_info
 
     name = f'url_extract_entity_{cid}'
     path = toolkit.create_document(current_article, name)
+
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=None)
 
     file_id = context.bot.send_document(chat_id=cid,
                                         document=open(path, 'rb'),
@@ -96,12 +137,20 @@ extract_entity_handler = CallbackQueryHandler(callback=extract_entity_callback,
 
 def extract_sentiment_callback(update: Update, context: CallbackContext):
 
-    update = context.chat_data['update']
-    cid = update.effective_message.chat.id
+    cid = update.callback_query.message.chat.id
+    mid = update.callback_query.message.message_id
+    text = update.callback_query.message.text
     q = context.chat_data['query']
     section_name = context.chat_data['current_section']
     storage_article = context.chat_data[section_name].get(q)
     toolkit = Toolkit()
+
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=muting_kb)
+
+    context.bot.answerCallbackQuery(callback_query_id=update.callback_query.id,
+                                    text=answer_query_text)
 
     if storage_article is not None and storage_article.get('polarity'):
         current_article = {'polarity': storage_article['polarity'],
@@ -131,6 +180,10 @@ def extract_sentiment_callback(update: Update, context: CallbackContext):
         key = key.replace('_', ' ')
         summarize_sentiment += sentiment_text.format(key, value)
 
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=None)
+
     context.bot.send_message(chat_id=cid,
                              text=summarize_sentiment,
                              reply_markup=kb_dict[section_name],
@@ -144,12 +197,20 @@ extract_sentiment_handler = CallbackQueryHandler(callback=extract_sentiment_call
 
 def summarize_callback(update: Update, context: CallbackContext):
 
-    update = context.chat_data['update']
-    cid = update.effective_message.chat.id
+    cid = update.callback_query.message.chat.id
+    mid = update.callback_query.message.message_id
+    text = update.callback_query.message.text
     q = context.chat_data['query']
     section_name = context.chat_data['current_section']
     storage_article = context.chat_data[section_name].get(q)
     toolkit = Toolkit()
+
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=muting_kb)
+
+    context.bot.answerCallbackQuery(callback_query_id=update.callback_query.id,
+                                    text=answer_query_text)
 
     if storage_article is not None and storage_article.get('sentences'):
         current_article = storage_article
@@ -169,6 +230,10 @@ def summarize_callback(update: Update, context: CallbackContext):
     for index, value in enumerate(summarized_sentences):
         convert_summarized_sentences += summarize_text.format(index+1, value)
 
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=None)
+
     context.bot.send_message(chat_id=cid,
                              text=convert_summarized_sentences,
                              parse_mode=ParseMode.HTML,
@@ -182,12 +247,20 @@ summarize_handler = CallbackQueryHandler(callback=summarize_callback,
 
 def hashtag_callback(update: Update, context: CallbackContext):
 
-    update = context.chat_data['update']
-    cid = update.effective_message.chat.id
+    cid = update.callback_query.message.chat.id
+    mid = update.callback_query.message.message_id
+    text = update.callback_query.message.text
     q = context.chat_data['query']
     section_name = context.chat_data['current_section']
     storage_article = context.chat_data[section_name].get(q)
     toolkit = Toolkit()
+
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=muting_kb)
+
+    context.bot.answerCallbackQuery(callback_query_id=update.callback_query.id,
+                                    text=answer_query_text)
 
     if storage_article is not None and storage_article.get('hashtags'):
         current_article = storage_article
@@ -212,7 +285,11 @@ def hashtag_callback(update: Update, context: CallbackContext):
         convert_summarized_hashtags += hashtags_text.format(index+1, value)
 
     convert_summarized_hashtags += f'\n{"".join(summarized_hashtags)}'
-    print(convert_summarized_hashtags)
+
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=None)
+
     context.bot.send_message(chat_id=cid,
                              text=convert_summarized_hashtags,
                              parse_mode=ParseMode.HTML,
@@ -227,12 +304,20 @@ hashtag_handler = CallbackQueryHandler(callback=hashtag_callback,
 
 def classify_callback(update: Update, context: CallbackContext):
 
-    update = context.chat_data['update']
-    cid = update.effective_message.chat.id
+    cid = update.callback_query.message.chat.id
+    mid = update.callback_query.message.message_id
+    text = update.callback_query.message.text
     q = context.chat_data['query']
     section_name = context.chat_data['current_section']
     storage_article = context.chat_data[section_name].get(q)
     toolkit = Toolkit()
+
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=muting_kb)
+
+    context.bot.answerCallbackQuery(callback_query_id=update.callback_query.id,
+                                    text=answer_query_text)
 
     if storage_article is not None and storage_article.get('categories'):
         current_article = storage_article
@@ -259,11 +344,14 @@ def classify_callback(update: Update, context: CallbackContext):
                                  parse_mode=ParseMode.HTML)
         return
 
-    print(summarized_categories)
     for index, value in enumerate(summarized_categories):
         convert_summarized_categories += categories_text.format(index+1,
                                                                 value['label'],
                                                                 value['confidence'])
+
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=None)
 
     context.bot.send_message(chat_id=cid,
                              text=convert_summarized_categories,
@@ -277,8 +365,10 @@ classify_handler = CallbackQueryHandler(callback=classify_callback,
 
 
 def extract_entity_file_callback(update: Update, context: CallbackContext):
-    update = context.chat_data['update']
-    cid = update.effective_message.chat.id
+
+    cid = update.callback_query.message.chat.id
+    mid = update.callback_query.message.message_id
+    text = update.callback_query.message.text
     q = context.chat_data['query']
     file_name = q['file_name']
     file_id = q['file_id']
@@ -286,7 +376,20 @@ def extract_entity_file_callback(update: Update, context: CallbackContext):
     storage_article = context.chat_data[section_name].get(file_name)
     toolkit = Toolkit()
 
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=muting_kb)
+
+    context.bot.answerCallbackQuery(callback_query_id=update.callback_query.id,
+                                    text=answer_query_text)
+
     if storage_article is not None and storage_article.get('entity_file'):
+
+        context.bot.edit_message_reply_markup(message_id=mid,
+                                              chat_id=cid,
+                                              text=text,
+                                              reply_markup=None)
+
         context.bot.send_document(chat_id=cid,
                                   document=storage_article.get('entity_file'),
                                   reply_markup=kb_dict[section_name])
@@ -309,7 +412,8 @@ def extract_entity_file_callback(update: Update, context: CallbackContext):
             part_entity = toolkit.extract_entity({'text': part,
                                                   'title': title})['entities']
         except:
-            update.message.replu_text(error_text)
+            update.callback_query.message.reply_text(error_text)
+            return
 
         for name, value in part_entity.items():
             if summarize_entities.get(name):
@@ -320,6 +424,10 @@ def extract_entity_file_callback(update: Update, context: CallbackContext):
 
     name = f'file_extract_entity_{cid}'
     path = toolkit.create_document(summarize_entities, name)
+
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=None)
 
     file_id = context.bot.send_document(chat_id=cid,
                                         document=open(path, 'rb'),
@@ -335,14 +443,23 @@ extract_entity_file_handler = CallbackQueryHandler(callback=extract_entity_file_
 
 
 def extract_sentiment_file_callback(update: Update, context: CallbackContext):
-    update = context.chat_data['update']
-    cid = update.effective_message.chat.id
+
+    cid = update.callback_query.message.chat.id
+    mid = update.callback_query.message.message_id
+    text = update.callback_query.message.text
     q = context.chat_data['query']
     file_name = q['file_name']
     file_id = q['file_id']
     section_name = context.chat_data['current_section']
     storage_article = context.chat_data[section_name].get(file_name)
     toolkit = Toolkit()
+
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=muting_kb)
+
+    context.bot.answerCallbackQuery(callback_query_id=update.callback_query.id,
+                                    text=answer_query_text)
 
     if storage_article is not None and storage_article.get('polarity'):
         current_article = {'polarity': storage_article['polarity'],
@@ -377,6 +494,9 @@ def extract_sentiment_file_callback(update: Update, context: CallbackContext):
         key = key.replace('_', ' ')
         summarize_sentiment += sentiment_text.format(key, value)
 
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=None)
     context.bot.send_message(chat_id=cid,
                              text=summarize_sentiment,
                              reply_markup=kb_dict[section_name],
@@ -389,14 +509,23 @@ extract_sentiment_file_handler = CallbackQueryHandler(callback=extract_sentiment
 
 
 def summarize_file_callback(update: Update, context: CallbackContext):
-    update = context.chat_data['update']
-    cid = update.effective_message.chat.id
+
+    cid = update.callback_query.message.chat.id
+    mid = update.callback_query.message.message_id
+    text = update.callback_query.message.text
     q = context.chat_data['query']
     file_name = q['file_name']
     file_id = q['file_id']
     section_name = context.chat_data['current_section']
     storage_article = context.chat_data[section_name].get(file_name)
     toolkit = Toolkit()
+
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=muting_kb)
+
+    context.bot.answerCallbackQuery(callback_query_id=update.callback_query.id,
+                                    text=answer_query_text)
 
     if storage_article is not None and storage_article.get('sentences'):
         current_article = storage_article
@@ -418,17 +547,20 @@ def summarize_file_callback(update: Update, context: CallbackContext):
         text_parts, title = get_parts_of_text(current_article['text'])
 
         for part in text_parts:
-            print(f'part###################{part}')
             try:
                 summarized_sentences += toolkit.summarize({'text': part,
                                                            'title': title})['sentences']
             except:
-                update.message.replu_text(error_text)
+                update.callback_query.message.reply_text(error_text)
 
         context.chat_data[section_name][file_name].update({'sentences': summarized_sentences})
 
     name = f'file_summarize_{cid}'
     path = toolkit.create_document({'sentences': summarized_sentences}, name)
+
+    context.bot.edit_message_reply_markup(message_id=mid,
+                                          chat_id=cid,
+                                          reply_markup=None)
 
     sumarrize_file_id = context.bot.send_document(chat_id=cid,
                                                   document=open(path, 'rb'),

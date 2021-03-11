@@ -21,6 +21,10 @@ sentiment_button = InlineKeyboardButton(text='Extract sentiment',
 hashtag_button = InlineKeyboardButton(text='suggest hashtags',
                                       callback_data='hashtag')
 
+muting_button = InlineKeyboardButton(text='Processing...',
+                                     callback_data='l')
+
+muting_keyboard = [[muting_button]]
 
 url_keyboard = [[extract_article_button, entity_button],
                 [summarize_button, sentiment_button]]
@@ -42,5 +46,7 @@ help_button = '\U00002753 Help'
 back_to_menu_kb = ReplyKeyboardMarkup(keyboard=[[back_to_menu_button, help_button]],
                                       resize_keyboard=True,
                                       one_time_keyboard=True)
+
+muting_kb = InlineKeyboardMarkup(inline_keyboard=muting_keyboard)
 
 
