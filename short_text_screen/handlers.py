@@ -1,6 +1,6 @@
 from telegram.ext import (MessageHandler, Filters, CallbackContext,
                           ConversationHandler)
-from telegram import (ParseMode, Update)
+from telegram import (Update)
 from chattools import clean_chat
 from keyboards import back_to_menu_kb, menu_keyboard, kb_dict, back_to_menu_button, help_button
 from main_screen.handlers import back_to_menu_handler
